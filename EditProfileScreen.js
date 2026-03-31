@@ -15,6 +15,10 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/.test(email.trim());
 }
 
+function isValidPhone(phone) {
+  return /^[6-9]\d{9}$/.test(phone);
+}
+
 function Field({
   label, icon, value, onChangeText, onBlur,
   placeholder, keyboardType = "default", error,
@@ -60,7 +64,15 @@ export default function EditProfileScreen({ navigation, route }) {
   const existing = route?.params?.profile || {};
 
   const [name,   setName]   = useState(existing.name   || "Annapurna User");
-  const [phone,  setPhone]  = useState(existing.phone  || "+91 98765 43210");
+  const formatPhone = (phone) => {
+    if (!phone) return "";
+
+    // Remove +91 if exists
+    return phone.replace(/^(\+91)/, "").replace(/\D/g, "").slice(0, 10);
+  };
+
+  const [phone, setPhone] = useState(formatPhone(existing.phone));
+
   const [email,  setEmail]  = useState(existing.email  || "");
   const [gender, setGender] = useState(existing.gender || "");
 
@@ -69,10 +81,18 @@ export default function EditProfileScreen({ navigation, route }) {
   const [dobErr, setDobErr] = useState("");
 
   const [emailTouched, setEmailTouched] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
 
   const emailErr = emailTouched && email.trim().length > 0 && !isValidEmail(email)
     ? "Enter a valid email (e.g. you@example.com)"
     : "";
+
+    const cleanedPhone = phone.replace(/\s+/g, "");
+
+    const phoneErr =
+      phoneTouched && phone && !isValidPhone(cleanedPhone)
+        ? "Enter valid 10-digit mobile number"
+        : "";
 
     const handleDateChange = (event, selectedDate) => {
         setShowPicker(false);
@@ -96,6 +116,12 @@ export default function EditProfileScreen({ navigation, route }) {
         Alert.alert("Validation", "Name cannot be empty.");
         return;
         }
+
+        if (phone && !isValidPhone(cleanedPhone)) {
+        Alert.alert("Invalid Phone", "Enter valid mobile number");
+        return;
+        }
+
         if (email.trim().length > 0 && !isValidEmail(email)) {
         Alert.alert("Invalid Email", "Please enter a valid email address.");
         return;
@@ -161,8 +187,20 @@ export default function EditProfileScreen({ navigation, route }) {
             label="Phone Number"
             icon="call-outline"
             value={phone}
-            onChangeText={setPhone}
-            placeholder="+91 XXXXX XXXXX"
+            onChangeText={(text) => {
+              // Remove non-numeric characters
+              let cleaned = text.replace(/[^0-9]/g, "");
+
+              // Limit to 10 digits
+              if (cleaned.length > 10) {
+                cleaned = cleaned.slice(0, 10);
+              }
+
+              setPhone(cleaned);
+            }}
+
+            onBlur={() => setPhoneTouched(true)}
+            placeholder="XXXXX XXXXX"
             keyboardType="phone-pad"
           />
           <View style={styles.divider} />
